@@ -2,9 +2,10 @@
 
 3 ways to use it:
 
-## 1. Browse the pre-scraped data on my WIP interface: https://serg06.github.io/toronto-pools/
+## 1. Browse the pre-scraped data on my WIP interface
 
-To see when I last scraped it, just check when I last committed index.html.
+Located here: https://serg06.github.io/toronto-pools/. To see when I last scraped it, just check when I last committed
+index.html.
 
 ## 2. Get your hands dirty in the code
 
