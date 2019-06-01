@@ -41,6 +41,23 @@ def main():
     gen_page(pool_info)
 
 
+def print_weird_letters(pool_info):
+    """
+    Print all non-alphabetical characters in all pool names.
+    """
+
+    letters = 'qwertyuiopasdfghjklzxcvbnm'
+    chars = set()
+    for pool in pool_info:
+        for c in pool.name:
+            chars.add(c)
+    for c in letters.lower() + letters.upper():
+        if c in chars:
+            chars.remove(c)
+    chars = sorted(list(chars))
+    print(chars)
+
+
 def get_earliest_latest_dates(pool_info: List[Pool]):
     earliest = latest = pool_info[0].availabilities[0][0]  # first pool, availability, and date
 
@@ -62,10 +79,28 @@ def date_range(start: datetime, end: datetime):
         date += oneday
 
 
+def classify_pool_name(name):
+    """
+    Sanitize pool name so that it can be a class.
+    """
+
+    replace = {
+        ' ': '-',
+        "'": "",
+        ',': "",
+        '-': "-",
+        '.': ""
+    }
+
+    for c in set(name):
+        if c in replace:
+            name = name.replace(c, replace[c])
+
+    return name
+
+
 def gen_page(pool_info: List[Pool]):
-    # TODO: do this all with a single f-string? https://docs.python.org/3/reference/lexical_analysis.html#f-strings
-    # html = ""
-    html = "<table>"
+    ##### SETUP #####
 
     # find earliest and latest date in the list
     earliest_date, latest_date = get_earliest_latest_dates(pool_info)
@@ -74,43 +109,63 @@ def gen_page(pool_info: List[Pool]):
     # make sure they're not more than 6 months apart, since I doubt it'll work very well at that point
     assert (latest_date - earliest_date) < timedelta(days=(6 * (365 / 12)))
 
+    ##### GENERATE SELECT DROPDOWN #####
+
+    html_select = "<select id='date-select'>"
+
+    for date in date_range(earliest_date, latest_date):
+        html_select += f"<option value='{date.strftime('%Y-%m-%d')}'>{date.strftime('%Y-%m-%d')}</option>"
+
+    html_select += "</select>"
+
+    ##### GENERATE TABLE #####
+
+    # TODO: do this all with a single f-string? https://docs.python.org/3/reference/lexical_analysis.html#f-strings
+    # html = ""
+    html_table = "<table>"
+
     # make thead
-    html += "<thead><tr>"
+    html_table += "<thead><tr>"
 
     # add name slot
-    html += "<th>Name</th>"
+    html_table += "<th>Name</th>"
 
     # iterate over all dates between earliest and latest
     for date in date_range(earliest_date, latest_date):
-        html += f"<th>{date.strftime('%Y-%m-%d')}</th>"
+        html_table += f"<th class='date-{date.strftime('%Y-%m-%d')} pool-date'>{date.strftime('%Y-%m-%d')}</th>"
         date += timedelta(days=1)
 
-    html += "</tr></thead>"
+    html_table += "</tr></thead>"
 
     # make tbody
-    html += "<tbody>"
+    html_table += "<tbody>"
     for pool in pool_info:
-        html += f"<tr><th>{pool.name}</th>"
+        html_table += f"<tr class='{classify_pool_name(pool.name)} pool-row'><th class='pool-name' class-name='{classify_pool_name(pool.name)}'>{pool.name}</th>"
         for date in date_range(earliest_date, latest_date):
             found = False
             for date2, time2 in pool.availabilities:
-                # TODO: for now, only handles first availability at that date!
+                # TODO: for now, only shows first availability at that date! Also triple for loop, yikes.
                 if date == date2:
                     found = True
                     break
             if found:
-                html += f"<td>{time2}</td>"
+                html_table += f"<td class='date-{date.strftime('%Y-%m-%d')} pool-time'>{time2}</td>"
             else:
-                html += "<td></td>"
+                html_table += f"<td class='date-{date.strftime('%Y-%m-%d')} pool-time'>&nbsp;</td>"
 
-        html += "</tr>"
-    html += "</tbody>"
+        html_table += "</tr>"
+    html_table += "</tbody>"
 
-    html += "</table>"
+    html_table += "</table>"
 
     with open('index_template.html', 'r') as template:
         with open('index.html', 'w') as result:
-            result.write(template.read().replace("{{ date_table }}", html))
+            html_template = template.read()
+
+            html_template = html_template.replace("{{ data_table }}", html_table)
+            html_template = html_template.replace("{{ date_select }}", html_select)
+
+            result.write(html_template)
 
     # with open('out.html', 'w') as f:
     #     f.write("<link rel='stylesheet' type='text/css' href='out.css'>" + html)
