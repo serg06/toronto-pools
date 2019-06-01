@@ -2,8 +2,8 @@ Super basic browsing of Toronto's leisure pool hours.
 
 What it does:
 - Downloads latest pool info from https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html
-- Parses page and reverse pool info back to usable objects
-- Has a function to find all pool availability on a certain day
+- Parses page and reverts pool info into usable objects
+- Has a function that browses through these objects for you and prints all pools available on a given day
 
 How to work it:
 - Open pools.py
