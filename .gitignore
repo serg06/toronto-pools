@@ -1,5 +1,6 @@
 .idea/
 __pycache__/
-pools.pkl  # pool schedule cache
-out.css  # for testing
-
+# pool schedule cache
+pools.pkl
+# for testing
+out.css
