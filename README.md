@@ -12,13 +12,13 @@ I've gone through the trouble of setting up scraping and parsing of the
 [Toronto pools page](https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html).
 All you have to do is:
 - Open pools.py
-- Delete pools.pkl (the scraped pool info cache) so that you get up-to-date info
+- (Optional) delete pools.pkl to re-scrape the pool info
 - Edit the date in the main function to the one you want info on (e.g. `find_pools_on("June 1", pool_info)`)
 - Edit find_pools_on to manipulate the data any way you want. Currently it just sorts by how long the pool is open,
 and then by start time.
 
 ## 3. Re-scrape and regenerate the web page yourself to make sure it's up-to-date
 - Clone the repo
-- Delete pools.pkl (the scraped pool info cache) so that you get up-to-date info
+- (Optional) delete pools.pkl to re-scrape the pool info
 - Run `python3 generate_page.py`
 - Open index.html with a browser
