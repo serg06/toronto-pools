@@ -1,13 +1,13 @@
 // globals that are filled in on page load
 let selectDate;
 
-const EMPTY_TIME = "\xa0" // what we expect inside empty time <td>s
+const EMPTY_TIME = "\xa0"; // what we expect inside empty time <td>s
 
 
 function onSelectDate(event) {
     // get the date they chose
     let date = event.target.value;
-    let datecls = `date-${date}`
+    let datecls = `date-${date}`;
 
     // hide old date
     for (let el of document.querySelectorAll('.pool-date.selected-date')) {
@@ -39,7 +39,7 @@ function onSelectDate(event) {
     // hide pointless rows
     for (let row of document.querySelectorAll('tr.pool-row')) {
         let time = row.querySelector('.selected-date').textContent;
-        if (time == EMPTY_TIME) {
+        if (time === EMPTY_TIME) {
             row.style.display = 'none';
         }
     }

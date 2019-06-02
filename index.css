@@ -1,12 +1,21 @@
-th.pool-date, td.pool-time {
-    display: none;
+.container {
+    margin: auto;
+    max-width: 800px;
 }
 
-th, td {
-    white-space: nowrap;
-    padding: 5px;
+.pool-ver {
+    clear: both;
 }
 
-table, th, td {
-  border: 1px solid black;
+.title {
+    text-align: center;
+
+    font-weight: 200;
+    font-size: 40px;
+    margin: 20px 10px 20px 10px;
+}
+
+.body {
+    font-weight: 200;
+    font-size: 18px;
 }

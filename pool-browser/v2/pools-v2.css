@@ -1,0 +1,28 @@
+.pool-card {
+  background-color: rgb(100, 180, 255);
+  border-radius: 10%;
+  text-align: center;
+  width: 300px;
+  padding: 10px;
+  margin: 10px;
+}
+
+.pool-card-holder {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.pool-name {
+  display: inline-block;
+
+  padding: 1px 5px 1px 5px;
+  margin: 2px 6px 2px 6px;
+
+  font-weight: 200;
+  font-size: 18px;
+  background-color: rgb(150, 220, 255);
+}
+
+.pool-time {
+  display: none;
+}

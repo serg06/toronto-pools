@@ -1,9 +1,11 @@
 [ ] add option to filter by name
-[ ] have each pool have all info (start, end, location, name, open length, distance to you, driving time...) stored in like a card
+[x] have each pool have all info (start, end, location, name, open length, distance to you, driving time...) stored in like a card
 	[ ] display cards vertically on phone, and maybe in a grid on pc
+		This looks good? https://developer.mozilla.org/en-US/docs/Web/CSS/flex-wrap
 	[ ] easy to sort like this, instead of a fricking table
 	[ ] distance     fills in once you put in your coordinates
 	[ ] driving time fills in once you put in your API key
+[ ] change it to store data in JS, then give them stuff by date. Don't want them having a large DOM the whole time, it's "laggy" (and inefficient to store, unlike js).
 [ ] get gmaps API key working
 [ ] save coordinates for each location (programatically)
 [ ] add an option to plug in your coordinates, then it sorts them by distance

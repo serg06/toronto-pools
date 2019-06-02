@@ -2,5 +2,3 @@
 __pycache__/
 # pool schedule cache
 pools.pkl
-# for testing
-out.css

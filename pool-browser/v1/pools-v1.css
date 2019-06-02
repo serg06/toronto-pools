@@ -1,0 +1,12 @@
+th.pool-date, td.pool-time {
+    display: none;
+}
+
+th, td {
+    white-space: nowrap;
+    padding: 5px;
+}
+
+table, th, td {
+  border: 1px solid black;
+}
