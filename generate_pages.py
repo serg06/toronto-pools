@@ -31,6 +31,9 @@ class Pool:
         self.name = name
         self.availabilities = []
 
+        self.address = None  # TODO
+        self.phone = None  # TODO
+
     def add_availability(self, date, time):
         self.availabilities.append((date, time))
 

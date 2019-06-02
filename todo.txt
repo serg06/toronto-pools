@@ -5,7 +5,11 @@
 	[ ] easy to sort like this, instead of a fricking table
 	[ ] distance     fills in once you put in your coordinates
 	[ ] driving time fills in once you put in your API key
+
+[ ] ADD GOOGLE MAPS ICON BESIDE TITLE INTO V2
 [ ] change it to store data in JS, then give them stuff by date. Don't want them having a large DOM the whole time, it's "laggy" (and inefficient to store, unlike js).
+[ ] Add version that doesn't pull from .py, but instead just pulls from the website and parses the data!
+
 [ ] get gmaps API key working
 [ ] save coordinates for each location (programatically)
 [ ] add an option to plug in your coordinates, then it sorts them by distance
