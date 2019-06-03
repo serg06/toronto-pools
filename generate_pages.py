@@ -5,8 +5,8 @@ from enum import Enum, unique
 from typing import Tuple, List
 
 import requests
-from bs4 import BeautifulSoup
-from dateutil import parser
+from bs4 import BeautifulSoup  # beautifulsoup4
+from dateutil import parser  # python-dateutil
 
 # URL of leisure pool schedules
 POOL_SCHEDULES_URL = 'https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html'
@@ -153,7 +153,8 @@ def parse_time(time_str, type: TimeType):
 
 
 def get_earliest_latest_dates(pool_info: List[Pool]):
-    earliest = latest = pool_info[0].availabilities[0][0]  # first pool, availability, and date
+    # find first pool availability+date
+    earliest = latest = pool_info[0].availabilities[0][0]
 
     for pool in pool_info:
         for date, _ in pool.availabilities:
@@ -389,17 +390,32 @@ def save_pool_info(pool_info):
         pickle.dump(pool_info, p)
 
 
-def get_pool_schedules():
-    """
-    Download pool schedules from toronto.ca.
-    Returns Pool objects with just pool name and schedule filled in.
-    """
-
+def get_pool_info():
     # cache
     try:
         return load_pool_info()
     except:
         pass
+
+    pools = get_pool_schedules()
+    addresses = get_pool_addresses()
+
+    for pool in pools:
+        if pool.name not in addresses:
+            print(f'WARNING: Cannot find {pool.name} in addresses. Maybe it\'s a wading pool?')
+        else:
+            pool.address = addresses[pool.name]
+
+    save_pool_info(pools)
+
+    return pools
+
+
+def get_pool_schedules():
+    """
+    Download pool schedules from toronto.ca.
+    Returns Pool objects with just pool name and schedule filled in.
+    """
 
     pool_info_response = requests.get(POOL_SCHEDULES_URL)
 
@@ -446,9 +462,6 @@ def get_pool_schedules():
 
         pool_objs.append(pool_obj)
 
-    # cache
-    save_pool_info(pool_objs)
-
     return pool_objs
 
 
@@ -457,9 +470,38 @@ def get_pool_addresses():
     Get map of pool name -> pool address.
     """
 
+    # TODO; ALSO SAVE TYPE OF POOL (I.E. INDOOR/OUTDOOR/WADING/SPLASH-AND-SPRAY-PAD, AND DISPLAY IT!!
+
+    pages = []
+
+    # download pages and convert them to soups
+    for url in POOL_ADDRESSES_URLS:
+        pool_addresses_response = requests.get(url)
+
+        if pool_addresses_response.status_code != 200:
+            print(f"Error: Not 200, but {pool_addresses_response.status_code} instead. Pre-emptively quitting...")
+            exit(-1)
+
+        soup = BeautifulSoup(pool_addresses_response.content)
+
+        pages.append(soup)
+
     addresses = dict()
+    phone_numbers = dict()  # future use?
 
+    for page in pages:
+        location_rows = page.select('.pfrListing table tr:not([class=header])')
+        print(f'found {len(location_rows)} locations...')
+        for row in location_rows:
+            # td data-info=Name/Address/Phone
+            name = row.select_one('td[data-info="Name"]')
+            address = row.select_one('td[data-info="Address"]')
+            phone = row.select_one('td[data-info="Phone"]')
 
+            addresses[name.text.strip()] = address.text.strip()
+            phone_numbers[name.text.strip()] = phone.text.strip()
+
+    return addresses
 
 
 if __name__ == '__main__':
