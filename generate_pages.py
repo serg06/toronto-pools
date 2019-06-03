@@ -9,7 +9,11 @@ from bs4 import BeautifulSoup
 from dateutil import parser
 
 # URL of leisure pool schedules
-url = 'https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html'
+POOL_SCHEDULES_URL = 'https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html'
+POOL_ADDRESSES_URLS = [
+    'https://www.toronto.ca/data/parks/prd/facilities/indoor-pools/index.html',  # indoor
+    'https://www.toronto.ca/data/parks/prd/facilities/outdoor-pools/index.html'  # outdoor
+]
 
 # Days of week as displayed on the webpage
 days_of_wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -27,7 +31,7 @@ class TimeType(Enum):
 
 # A pool.
 class Pool:
-    def __init__(self, name):
+    def __init__(self, name, address=None, phone=None):
         self.name = name
         self.availabilities = []
 
@@ -333,7 +337,12 @@ def gen_v2(pool_info: List[Pool]):
         """
 
         html_pool_cards += f"<div class='pool-card {classify_pool_name(pool.name)}'>"
-        html_pool_cards += f"<span class='pool-name'>{pool.name}</span>"
+
+        # pool name and google maps link
+        html_pool_cards += f"<span class='pool-name'>"
+        html_pool_cards += f"<a href={gmaps_search_url(pool.name)} target='_blank' rel='noopener noreferrer'>"
+        html_pool_cards += f"<img src='../img/GoogleMaps_logo.svg'>"
+        html_pool_cards += f"</img></a> {pool.name}</span>"
 
         # sort availabilities by time first, so that times are sorted under each date
         pool.availabilities.sort(key=lambda date_n_time: timerange_sorter_start_time(date_n_time[1]))
@@ -356,6 +365,11 @@ def gen_v2(pool_info: List[Pool]):
             result.write(html_template)
 
 
+def gmaps_search_url(query):
+    query = re.sub(r"\s+", "+", query)
+    return f"https://www.google.ca/maps/search/{query}/"
+
+
 def split_timeranges(timeranges: str):
     """
     If you have multiple timeranges in one string, e.g. 5am-6pm8-9pm, split them into their own timeranges with this f.
@@ -375,9 +389,10 @@ def save_pool_info(pool_info):
         pickle.dump(pool_info, p)
 
 
-def get_pool_info():
+def get_pool_schedules():
     """
     Download pool schedules from toronto.ca.
+    Returns Pool objects with just pool name and schedule filled in.
     """
 
     # cache
@@ -386,7 +401,7 @@ def get_pool_info():
     except:
         pass
 
-    pool_info_response = requests.get(url)
+    pool_info_response = requests.get(POOL_SCHEDULES_URL)
 
     if pool_info_response.status_code != 200:
         print(f"Error: Not 200, but {pool_info_response.status_code} instead.")
@@ -435,6 +450,16 @@ def get_pool_info():
     save_pool_info(pool_objs)
 
     return pool_objs
+
+
+def get_pool_addresses():
+    """
+    Get map of pool name -> pool address.
+    """
+
+    addresses = dict()
+
+
 
 
 if __name__ == '__main__':

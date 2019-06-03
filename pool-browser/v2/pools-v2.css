@@ -23,6 +23,11 @@
   background-color: rgb(150, 220, 255);
 }
 
+.pool-name img {
+    height: 20px;
+}
+
+
 .pool-time {
   display: none;
 }
