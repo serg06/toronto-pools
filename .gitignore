@@ -1,4 +1,4 @@
 .idea/
 __pycache__/
 # pool schedule cache
-pools.pkl
+*.pkl
