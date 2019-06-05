@@ -17,8 +17,20 @@
 <body>
 <h1><a href="/toronto-pools/">Serg's Toronto leisure pool picker</a> v3!</h1>
 
+
 Choose a date:
 {{ date_select }}
+
+Sort by:
+<select label="sort-select" id="sort-select">
+    <option value="name">Name</option>
+    <option value="distance">Distance (placeholder)</option>
+    <option value="length">Length</option>
+    <option value="soonest">Soonest</option>
+    <option value="start">Start</option>
+    <option value="end">End</option>
+</select>
+
 <br>
 <div class='pool-card-holder'></div>
 </body>

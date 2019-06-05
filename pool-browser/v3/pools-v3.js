@@ -1,5 +1,121 @@
+const oneDayMinutes = 60 * 24;
+const sortOptions = {
+    name: (cardEl, cardEl2) => {
+        if (cardEl.pool_info.name > cardEl2.pool_info.name) {
+            return 1;
+        } else if (cardEl.pool_info.name < cardEl2.pool_info.name) {
+            return -1;
+        } else {
+            return 0;
+        }
+    },
+    distance: (cardEl, cardEl2) => {
+        return 0;
+    },
+    length: (cardEl, cardEl2) => {
+        let date = elSelectDate.value;
+
+        let length1 = Math.max(...cardEl.pool_info.availabilities[date].map(avail => avail.end - avail.start));
+        let length2 = Math.max(...cardEl2.pool_info.availabilities[date].map(avail => avail.end - avail.start));
+
+        // reverse sort
+        if (length1 > length2) {
+            return -1;
+        } else if (length1 < length2) {
+            return 1;
+        } else {
+            return sortOptions.name(cardEl, cardEl2);
+        }
+    },
+    soonest: (cardEl, cardEl2) => {
+        // TODO: Get EST time? https://stackoverflow.com/a/36206597/5090928
+        let date = elSelectDate.value;
+
+        let d = new Date();
+        let timeInMinutes = d.getHours() * 60 + d.getMinutes();
+
+        let soonest1 = Math.min(...cardEl.pool_info.availabilities[date].map(avail =>
+            (avail.start - timeInMinutes >= 0) ? avail.start - timeInMinutes : oneDayMinutes));
+        let soonest2 = Math.min(...cardEl2.pool_info.availabilities[date].map(avail =>
+            (avail.start - timeInMinutes >= 0) ? avail.start - timeInMinutes : oneDayMinutes));
+
+        if (soonest1 > soonest2) {
+            return 1;
+        } else if (soonest1 < soonest2) {
+            return -1;
+        } else {
+            return sortOptions.name(cardEl, cardEl2);
+        }
+    },
+    start: (cardEl, cardEl2) => {
+        let date = elSelectDate.value;
+
+        let earliest1 = Math.min(...cardEl.pool_info.availabilities[date].map(avail => avail.start));
+        let earliest2 = Math.min(...cardEl2.pool_info.availabilities[date].map(avail => avail.start));
+
+        if (earliest1 > earliest2) {
+            return 1;
+        } else if (earliest1 < earliest2) {
+            return -1;
+        } else {
+            return sortOptions.name(cardEl, cardEl2);
+        }
+    },
+    end: (cardEl, cardEl2) => {
+        let date = elSelectDate.value;
+
+        let earliest1 = Math.min(...cardEl.pool_info.availabilities[date].map(avail => avail.end));
+        let earliest2 = Math.min(...cardEl2.pool_info.availabilities[date].map(avail => avail.end));
+
+        if (earliest1 > earliest2) {
+            return 1;
+        } else if (earliest1 < earliest2) {
+            return -1;
+        } else {
+            return sortOptions.name(cardEl, cardEl2);
+        }
+    }
+};
+
 // globals that are filled in on page load
 let elSelectDate;
+let elSelectSort;
+let elCardHolder;
+
+function removeChildren(el) {
+    while (el.firstChild) {
+        el.removeChild(el.firstChild);
+    }
+}
+
+function sortCards(sortOption) {
+    console.log(`sortCards(${sortOption})`);
+
+    // get sorter
+    let compareFn = sortOptions[sortOption];
+    if (compareFn === undefined) {
+        console.log(`ERR: No sort function called ${compareFn}`);
+        return;
+    }
+
+    // get pool card elements
+    let poolCardEls = document.querySelectorAll('.pool-card');
+    let poolCardArr = Array.from(poolCardEls);
+
+    // sort elements
+    poolCardArr.sort(compareFn);
+
+    // stick 'em back in!
+
+    // for (let [i, el] of poolCardArr.entries()) {
+    //     elCardHolder.replaceChild(el, poolCardEls[i]);
+    // }
+
+    removeChildren(elCardHolder);
+    for (let card of poolCardArr) {
+        elCardHolder.appendChild(card);
+    }
+}
 
 function getDate() {
     let today = new Date();
@@ -32,14 +148,11 @@ function selectDate(date) {
     }
 
     // delete old cards
-    let cards_container = document.querySelector('.pool-card-holder');
-    while (cards_container.firstChild) {
-        cards_container.removeChild(cards_container.firstChild);
-    }
+    removeChildren(elCardHolder);
 
     // insert new ones
     for (let card of cards) {
-        cards_container.appendChild(card);
+        elCardHolder.appendChild(card);
     }
 }
 
@@ -135,13 +248,28 @@ function onSelectDate(event) {
     selectDate(date);
 }
 
+function onSelectSort(event) {
+    // get the sort option they chose
+    let sortOption = event.target.value;
+
+    // change to it
+    sortCards(sortOption);
+}
+
 window.addEventListener('load', (event) => {
     console.log('page is fully loaded');
 
+    // get elements
     elSelectDate = document.querySelector('#date-select');
-    elSelectDate.addEventListener('change', onSelectDate);
+    elSelectSort = document.querySelector('#sort-select');
+    elCardHolder = document.querySelector('.pool-card-holder');
 
+    // hook up date select
+    elSelectDate.addEventListener('change', onSelectDate);
     let today = getDate();
     elSelectDate.value = today;
     selectDate(today);
+
+    // hook up sort select
+    elSelectSort.addEventListener('change', onSelectSort);
 });
