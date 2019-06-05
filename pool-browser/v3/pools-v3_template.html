@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel='stylesheet' type='text/css' href='pools-v3.css'>
+
+    <!-- Generate the pool info and store it as a global JS object. -->
+    <script type="text/javascript">const pool_info = {{ pool_info }};</script>
+    <script type="text/javascript" src='pools-v3.js'></script>
+
+
+    <title>Hello, world!</title>
+</head>
+<body>
+<h1><a href="/toronto-pools/">Serg's Toronto leisure pool picker</a> v3!</h1>
+
+Choose a date:
+{{ date_select }}
+<br>
+<div class='pool-card-holder'></div>
+</body>
+</html>
+
+<!--
+  TODO:
+    - Bootstrap for prettiness?
+    - Clusterize.js to display huge table w/o lag?
+-->
