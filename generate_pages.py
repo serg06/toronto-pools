@@ -10,10 +10,38 @@ from dateutil import parser  # python-dateutil
 
 # URL of leisure pool schedules
 POOL_SCHEDULES_URL = 'https://www.toronto.ca/data/parks/prd/swimming/dropin/leisure/index.html'
-POOL_ADDRESSES_URLS = [
-    'https://www.toronto.ca/data/parks/prd/facilities/indoor-pools/index.html',  # indoor
-    'https://www.toronto.ca/data/parks/prd/facilities/outdoor-pools/index.html'  # outdoor
-]
+
+
+@unique
+class PoolType(Enum):
+    IndoorPool = 'indoor pool'
+    OutdoorPool = 'outdoor pool'
+    SplashPad = 'splash pad'
+    WadingPool = 'wading pool'
+
+
+POOL_ADDRESS_URLS = {
+    PoolType.IndoorPool: 'https://www.toronto.ca/data/parks/prd/facilities/indoor-pools/index.html',
+    PoolType.OutdoorPool: 'https://www.toronto.ca/data/parks/prd/facilities/outdoor-pools/index.html',
+    PoolType.SplashPad: 'https://www.toronto.ca/data/parks/prd/facilities/splash-pads/index.html',
+    PoolType.WadingPool: 'https://www.toronto.ca/data/parks/prd/facilities/wading-pools/index.html'
+}
+
+POOL_DESCRIPTIONS = {
+    PoolType.IndoorPool: 'The City of Toronto offers 60 indoor pools - some varying in aquatic features and design, '
+                         'but all promising a great time for the whole family. Indoor pools are open all-year round, '
+                         'providing a great way to beat the heat or escape the cold.',
+    PoolType.OutdoorPool: 'The City of Toronto has 58 outdoor pools and a water park for residents and visitors to '
+                          'have fun in the sun and make a splash while enjoying the warm summer weather.',
+    PoolType.SplashPad: 'Need a quick place for your children to enjoy the cool water on a hot and sunny day? Splash '
+                        'pads are unsupervised water play areas and are conveniently located in many parks and '
+                        'playgrounds. They often include engaging water features such as shower heads and spray jets '
+                        'that keep children laughing for hours. Parents are reminded to supervise their children at '
+                        'all times while visiting the splash pad.',
+    PoolType.WadingPool: 'Looking for your kids to splash around for a while but don\'t want to go to a pool? Wading '
+                         'pools are shallow water areas for children located within parks. Over 100 supervised wading '
+                         'pools are in operation in summer.'
+}
 
 # Days of week as displayed on the webpage
 days_of_wk = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -36,6 +64,7 @@ class Pool:
         self.availabilities = []
 
         self.address = None  # TODO
+        self.type = None  # Type of pool (indoor/outdoor/wading/etc)
         self.phone = None  # TODO
 
     def add_availability(self, date, time):
@@ -153,8 +182,9 @@ def parse_time(time_str, type: TimeType):
 
 
 def get_earliest_latest_dates(pool_info: List[Pool]):
-    # find first pool availability+date
-    earliest = latest = pool_info[0].availabilities[0][0]
+    # choose unrealistically late/early dates to ensure they get updated
+    earliest = parser.parse('2069')
+    latest = parser.parse('1969')
 
     for pool in pool_info:
         for date, _ in pool.availabilities:
@@ -162,6 +192,8 @@ def get_earliest_latest_dates(pool_info: List[Pool]):
                 earliest = date
             if date > latest:
                 latest = date
+
+    assert earliest != parser.parse('2069') and latest != parser.parse('1969'), 'error: cannot find earliest/latest'
 
     return earliest, latest
 
@@ -337,7 +369,9 @@ def gen_v2(pool_info: List[Pool]):
         </div>
         """
 
-        html_pool_cards += f"<div class='pool-card {classify_pool_name(pool.name)}'>"
+        html_pool_cards += f"<div class='pool-card {classify_pool_name(pool.name)}' " \
+            f"data-address='{pool.address or ''}' " \
+            f"data-type='{pool.type or ''}'>"
 
         # pool name and google maps link
         html_pool_cards += f"<span class='pool-name'>"
@@ -398,13 +432,15 @@ def get_pool_info():
         pass
 
     pools = get_pool_schedules()
-    addresses = get_pool_addresses()
+    addresses, pool_types, phone_numbers = get_pool_addresses_types_phones()
 
     for pool in pools:
         if pool.name not in addresses:
-            print(f'WARNING: Cannot find {pool.name} in addresses. Maybe it\'s a wading pool?')
+            print(f'WARNING: Cannot find {pool.name} in addresses.')
         else:
             pool.address = addresses[pool.name]
+            pool.type = pool_types[pool.name]
+            pool.phone = phone_numbers[pool.name]
 
     save_pool_info(pools)
 
@@ -465,17 +501,17 @@ def get_pool_schedules():
     return pool_objs
 
 
-def get_pool_addresses():
+def get_pool_addresses_types_phones():
     """
     Get map of pool name -> pool address.
     """
 
     # TODO; ALSO SAVE TYPE OF POOL (I.E. INDOOR/OUTDOOR/WADING/SPLASH-AND-SPRAY-PAD, AND DISPLAY IT!!
 
-    pages = []
+    pages = dict()
 
     # download pages and convert them to soups
-    for url in POOL_ADDRESSES_URLS:
+    for pool_type, url in POOL_ADDRESS_URLS.items():
         pool_addresses_response = requests.get(url)
 
         if pool_addresses_response.status_code != 200:
@@ -484,24 +520,30 @@ def get_pool_addresses():
 
         soup = BeautifulSoup(pool_addresses_response.content)
 
-        pages.append(soup)
+        pages[pool_type] = soup
 
     addresses = dict()
+    pool_types = dict()
     phone_numbers = dict()  # future use?
 
-    for page in pages:
+    for pool_type, page in pages.items():
         location_rows = page.select('.pfrListing table tr:not([class=header])')
         print(f'found {len(location_rows)} locations...')
         for row in location_rows:
             # td data-info=Name/Address/Phone
-            name = row.select_one('td[data-info="Name"]')
-            address = row.select_one('td[data-info="Address"]')
+            name = row.select_one('td[data-info="Name"]').text.strip()
+            address = row.select_one('td[data-info="Address"]').text.strip()
+
+            # Get phone (except sometimes there's no phone column)
             phone = row.select_one('td[data-info="Phone"]')
+            if phone is not None:
+                phone = phone.text.strip()
 
-            addresses[name.text.strip()] = address.text.strip()
-            phone_numbers[name.text.strip()] = phone.text.strip()
+            addresses[name] = address
+            phone_numbers[name] = phone
+            pool_types[name] = pool_type
 
-    return addresses
+    return addresses, pool_types, phone_numbers
 
 
 if __name__ == '__main__':
