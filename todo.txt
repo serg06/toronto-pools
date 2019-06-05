@@ -16,4 +16,5 @@
 [ ] add an option to plug in your address + API key, and it checks driving time to each location
 
 [ ] bootstrap the mf up!
+[ ] link it on reddit.com/r/toronto
 
