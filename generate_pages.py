@@ -75,6 +75,7 @@ def main():
     pool_info = get_pool_info()
     gen_v1(pool_info)
     gen_v2(pool_info)
+    gen_v3(pool_info)
 
 
 def print_weird_letters(pool_info):
@@ -229,6 +230,8 @@ def classify_pool_name(name):
 
 
 def gen_v1(pool_info: List[Pool]):
+    version_name = 'v1'
+
     ##### SETUP #####
 
     # find earliest and latest date in the list
@@ -284,8 +287,8 @@ def gen_v1(pool_info: List[Pool]):
 
     html_table += "</table>"
 
-    with open(f'{PAGES_FOLDER}/v1/pools-v1_template.html', 'r') as template:
-        with open(f'{PAGES_FOLDER}/v1/pools-v1.html', 'w') as result:
+    with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}_template.html', 'r') as template:
+        with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}.html', 'w') as result:
             html_template = template.read()
 
             html_template = html_template.replace("{{ data_table }}", html_table)
@@ -329,6 +332,8 @@ def gen_v2(pool_info: List[Pool]):
             </div>
         </div>
     """
+
+    version_name = 'v2'
 
     ##### SETUP #####
 
@@ -390,8 +395,113 @@ def gen_v2(pool_info: List[Pool]):
 
     html_pool_cards += "</div>"
 
-    with open(f'{PAGES_FOLDER}/v2/pools-v2_template.html', 'r') as template:
-        with open(f'{PAGES_FOLDER}/v2/pools-v2.html', 'w') as result:
+    with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}_template.html', 'r') as template:
+        with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}.html', 'w') as result:
+            html_template = template.read()
+
+            html_template = html_template.replace("{{ pool_cards }}", html_pool_cards)
+            html_template = html_template.replace("{{ date_select }}", html_select)
+
+            result.write(html_template)
+
+
+def gen_v3(pool_info: List[Pool]):
+    """
+
+    Example output:
+
+        <div class="pool-card-holder">
+            <div class="pool-card Albert-Campbell-Collegiate-Institute">
+                <div class="pool-name">Albert Campbell Collegiate Institute</div>
+                <div class="pool-time date-2019-05-26">1 - 2pm</div>
+                <div class="pool-time date-2019-05-27">5 - 6pm</div>
+                <div class="pool-time date-2019-06-01">2 - 5pm</div>
+            </div>
+            <div class="pool-card Albert-Campbell-Collegiate-Institute-Two">
+                <div class="pool-name">Albert Campbell Collegiate Institute Two</div>
+                <div class="pool-time date-2019-05-26">1 - 2pm</div>
+                <div class="pool-time date-2019-05-28">5 - 6pm</div>
+                <div class="pool-time date-2019-06-01">2 - 5pm</div>
+            </div>
+            <div class="pool-card Albert-Campbell-Collegiate-Institute-Three">
+                <div class="pool-name">Albert Campbell Collegiate Institute Three</div>
+                <div class="pool-time date-2019-05-26">1 - 2pm</div>
+                <div class="pool-time date-2019-05-28">5 - 6pm</div>
+                <div class="pool-time date-2019-06-01">2 - 5pm</div>
+            </div>
+            <div class="pool-card Albert-Campbell-Collegiate-Institute-Four">
+                <div class="pool-name">Albert Campbell Collegiate Institute Four</div>
+                <div class="pool-time date-2019-05-26">1 - 2pm</div>
+                <div class="pool-time date-2019-05-28">5 - 6pm</div>
+                <div class="pool-time date-2019-06-01">2 - 5pm</div>
+            </div>
+        </div>
+    """
+
+    version_name = 'v3'
+
+    ##### SETUP #####
+
+    # find earliest and latest date in the list
+    earliest_date, latest_date = get_earliest_latest_dates(pool_info)
+    assert earliest_date <= latest_date
+
+    # make sure they're not more than 6 months apart, since I doubt it'll work very well at that point
+    assert (latest_date - earliest_date) < timedelta(days=(6 * (365 / 12)))
+
+    ##### GENERATE SELECT DROPDOWN #####
+
+    html_select = "<select label='date-select' id='date-select'>"
+
+    for date in date_range(earliest_date, latest_date):
+        html_select += f"<option value='{date.strftime('%Y-%m-%d')}'>{date.strftime('%Y-%m-%d')}</option>"
+
+    html_select += "</select>"
+
+    ##### GENERATE POOL CARDS #####
+
+    # TODO: do this all with a single f-string? https://docs.python.org/3/reference/lexical_analysis.html#f-strings
+    # html = ""
+    html_pool_cards = "<div class='pool-card-holder'>"
+
+    # make tbody
+    for pool in pool_info:
+        # pool.name
+        # classify_pool_name(pool.name)
+        # date.strftime('%Y-%m-%d')
+
+        """
+        <div class="pool-card Albert-Campbell-Collegiate-Institute">
+            <div class="pool-name">Albert Campbell Collegiate Institute</div>
+            <div class="pool-time date-2019-05-26">1 - 2pm</div>
+            <div class="pool-time date-2019-05-27">5 - 6pm</div>
+            <div class="pool-time date-2019-06-01">2 - 5pm</div>
+        </div>
+        """
+
+        html_pool_cards += f"<div class='pool-card {classify_pool_name(pool.name)}' " \
+            f"data-address='{pool.address or ''}' " \
+            f"data-type='{pool.type or ''}'>"
+
+        # pool name and google maps link
+        html_pool_cards += f"<span class='pool-name'>"
+        html_pool_cards += f"<a href={gmaps_search_url(pool.name)} target='_blank' rel='noopener noreferrer'>"
+        html_pool_cards += f"<img src='../img/GoogleMaps_logo.svg'>"
+        html_pool_cards += f"</img></a> {pool.name}</span>"
+
+        # sort availabilities by time first, so that times are sorted under each date
+        pool.availabilities.sort(key=lambda date_n_time: timerange_sorter_start_time(date_n_time[1]))
+
+        for date2, time2 in pool.availabilities:
+            html_pool_cards += f"<div pool-name='{classify_pool_name(pool.name)}' class='pool-time " \
+                f"date-{date2.strftime('%Y-%m-%d')}'>{time2}</div>"
+
+        html_pool_cards += "</div>"
+
+    html_pool_cards += "</div>"
+
+    with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}_template.html', 'r') as template:
+        with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}.html', 'w') as result:
             html_template = template.read()
 
             html_template = html_template.replace("{{ data_table }}", html_pool_cards)
