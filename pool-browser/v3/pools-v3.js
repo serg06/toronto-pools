@@ -44,7 +44,7 @@ const sortOptions = {
         } else if (soonest1 < soonest2) {
             return -1;
         } else {
-            return sortOptions.name(cardEl, cardEl2);
+            return sortOptions.length(cardEl, cardEl2);
         }
     },
     start: (cardEl, cardEl2) => {
