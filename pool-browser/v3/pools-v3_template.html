@@ -18,19 +18,22 @@
 <h1><a href="/toronto-pools/">Serg's Toronto leisure pool picker</a> v3!</h1>
 
 <!-- TODO: Allow hitting enter button in input field -->
-Download distances (and times?): <input id="input-address" placeholder="Your address">
-<input id="input-apikey" placeholder="API key">
-<button id="btn-distance-update">Download</button>
+<div id="distance-ui-container">
+To check distances and driving times, enter your address (and API key) below, and hit Download.<br>
+Address: <input id="input-address" placeholder="Your address">
+API key: <input id="input-apikey" placeholder="API key"> <button id="btn-distance-update">Download</button>
 
 <br>
 
 <div id="download-result-container">Download status: <ul id="download-result"></ul></div>
+</div>
 
 <br>
 
+<div id="date-and-sort-container">
 Choose a date:
 {{ date_select }}
-
+<br>
 Sort by:
 <select id="sort-select">
     <option value="name">Name</option>
@@ -41,6 +44,9 @@ Sort by:
     <option value="start">Start</option>
     <option value="end">End</option>
 </select>
+</div>
+
+<br>
 
 <div class='pool-card-holder'></div>
 </body>

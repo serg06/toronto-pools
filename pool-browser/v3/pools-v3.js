@@ -364,6 +364,12 @@ function onDistanceResponse(response, requestedPools) {
     response = JSON.parse(response);
     responses.push(response);
 
+    // check for errors
+    if (response.route) {
+        appendDownloadStatus(`ERR: The location finder doesn\'t seem to like your location. It says "${response.info.messages[0]}".`, true);
+        return;
+    }
+
     // extract distances (and times) from response
     let distances = response.distance;
     let times = response.time;
