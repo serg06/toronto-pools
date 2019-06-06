@@ -26,3 +26,11 @@
 .pool-name img {
     height: 20px;
 }
+
+.err-msg {
+  color: red;
+}
+
+#download-result-container {
+  border: 1px solid silver;
+}

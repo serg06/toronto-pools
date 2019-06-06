@@ -1,4 +1,10 @@
 const oneDayMinutes = 60 * 24;
+const dataMatrixAPIURL = 'http://www.mapquestapi.com/directions/v2/routematrix'; // ?key=...
+const maxMatrixAPISize = 100;
+const requests = [];
+const responses = [];
+const apiKeyLocalStorageKey = "ApiKeyMapQuest";
+
 const sortOptions = {
     name: (cardEl, cardEl2) => {
         if (cardEl.pool_info.name > cardEl2.pool_info.name) {
@@ -10,7 +16,62 @@ const sortOptions = {
         }
     },
     distance: (cardEl, cardEl2) => {
-        return 0;
+        let d1 = cardEl.pool_info.distance;
+        let d2 = cardEl2.pool_info.distance;
+
+        if (d1 === d2) {
+            return 0;
+        }
+
+        // if d1 loses, d2 wins (is closer)
+        if (d1 === undefined) {
+            console.log(`WARN: Pool ${cardEl.pool_info.name} has no distance.`);
+            return 1;
+        }
+
+        // and vice versa
+        if (d2 === undefined) {
+            console.log(`WARN: Pool ${cardEl2.pool_info.name} has no distance.`);
+            return -1;
+        }
+
+        if (d1 < d2) {
+            return -1;
+        } else if (d1 > d2) {
+            return 1;
+        } else {
+            // should never reach here
+            return 0;
+        }
+    },
+    time: (cardEl, cardEl2) => {
+        let t1 = cardEl.pool_info.time;
+        let t2 = cardEl2.pool_info.time;
+
+        if (t1 === t2) {
+            return 0;
+        }
+
+        // if d1 loses, d2 wins (is closer)
+        if (t1 === undefined) {
+            console.log(`WARN: Pool ${cardEl.pool_info.name} has no time.`);
+            return 1;
+        }
+
+        // and vice versa
+        if (t2 === undefined) {
+            console.log(`WARN: Pool ${cardEl2.pool_info.name} has no time.`);
+            return -1;
+        }
+
+        if (t1 < t2) {
+            return -1;
+        } else if (t1 > t2) {
+            return 1;
+        } else {
+            // should never reach here
+            return 0;
+        }
     },
     length: (cardEl, cardEl2) => {
         let date = elSelectDate.value;
@@ -78,9 +139,7 @@ const sortOptions = {
 };
 
 // globals that are filled in on page load
-let elSelectDate;
-let elSelectSort;
-let elCardHolder;
+let elSelectDate, elSelectSort, elCardHolder, elInputAddress, elDownloadResult;
 
 function removeChildren(el) {
     while (el.firstChild) {
@@ -191,10 +250,6 @@ function timeToText(time) {
 }
 
 
-// cache created pool cards; maybe this'll speed it up, who knows
-let poolCardCache = {};
-
-
 function createPoolCard(pool, date) {
     /*
     Sample pool:
@@ -210,11 +265,6 @@ function createPoolCard(pool, date) {
     """
     */
 
-    let cached = poolCardCache[pool.name + date];
-    if (cached !== undefined) {
-        return cached;
-    }
-
     let times = pool.availabilities[date];
 
     let card_el = document.createElement('div');
@@ -223,6 +273,12 @@ function createPoolCard(pool, date) {
     let name_el = document.createElement('name');
     name_el.classList.add('pool-name');
     name_el.textContent = pool.name;
+    if (pool.distance) {
+        name_el.textContent += ` (~${pool.distance.toFixed(1)}km)`;
+    }
+    if (pool.time) {
+        name_el.textContent += ` (~${Math.ceil(pool.time / 60)}min)`;
+    }
     card_el.appendChild(name_el);
 
     for (let time of times) {
@@ -235,9 +291,126 @@ function createPoolCard(pool, date) {
     // expando this mf
     card_el.pool_info = pool;
 
-    poolCardCache[pool.name + date] = card_el;
-
     return card_el;
+}
+
+function appendDownloadStatus(status, err = false) {
+    let el = document.createElement('li');
+    el.textContent = status;
+    if (err) {
+        el.classList.add('err-msg');
+    }
+    elDownloadResult.appendChild(el);
+    return el;
+}
+
+function updateDistances(address, pools) {
+    // give them an update
+    let elStatus = appendDownloadStatus('downloading batch of distances/times...');
+
+    let apikey = document.querySelector('#input-apikey').value;
+    // save API key so they don't have to re-enter it every visit
+    localStorage.setItem(apiKeyLocalStorageKey, apikey);
+
+    let req;
+    if (window.XMLHttpRequest) { // Mozilla, Safari, IE7+ ...
+        req = new XMLHttpRequest();
+    } else if (window.ActiveXObject) { // IE 6 and older
+        console.log('WARN: XMLHttpRequest not supported, hopefully should still work.');
+        req = new ActiveXObject("Microsoft.XMLHTTP");
+    } else {
+        console.log('ERR: Ajax requests not supported on this browser.');
+        elDownloadResult.removeChild(elStatus);
+        appendDownloadStatus('ERR: NO AJAX', true);
+        return;
+    }
+
+    let URL = `${dataMatrixAPIURL}?key=${apikey}`;
+
+    // extract addresses in reliable order: Get pools, sort by name, then extract addresses.
+    pools.sort((pool1, pool2) => pool1.name > pool2.name ? 1 : pool1.name < pool2.name ? -1 : 0);
+    let addresses = pools.map(pool => `${pool.address}, Toronto ON`);
+
+    // add own address as first entry; the one to get distances too
+    addresses.unshift(address);
+
+    let body = {"locations": addresses};
+    requests.push(body);
+
+    req.onreadystatechange = function () {
+        if (req.readyState !== XMLHttpRequest.DONE) {
+            // If not ready yet, ignore.
+            return;
+        }
+
+        if (req.status !== 200) {
+            console.log(`ERR: MapQuest responded with non-200 status: ${req.status}`);
+            elDownloadResult.removeChild(elStatus);
+            appendDownloadStatus('ERR: unexpected (non-200) response from MapQuest', true);
+            return;
+        }
+
+        // console.log(`Success! Response: ${JSON.stringify(this.response)}`);
+        elDownloadResult.removeChild(elStatus);
+        onDistanceResponse(this.response, pools);
+    };
+
+    req.open('POST', URL);
+    req.send(JSON.stringify(body));
+    // response = JSON.parse(response);
+}
+
+function onDistanceResponse(response, requestedPools) {
+    response = JSON.parse(response);
+    responses.push(response);
+
+    // extract distances (and times) from response
+    let distances = response.distance;
+    let times = response.time;
+
+    // assert as expected
+    let dl = distances.length;
+    let ll = response.locations.length;
+    let tl = times.length;
+    if (((dl !== ll) && (dl !== ll - 1)) || ((tl !== ll) && (tl !== ll - 1))) {
+        console.log(`ERROR: dl: ${dl}, tl: ${tl}, ll: ${ll}`);
+        appendDownloadStatus('ERR: unexpected response (number of distances/times doesn\'t match number of pools...)', true);
+        return;
+    }
+
+    // sometimes a little weird...
+    if (distances.length === response.locations.length) {
+        if (distances[0] !== 0) {
+            console.log(`ERR: distances[0] != ${distances[0]}`);
+            appendDownloadStatus('ERR: unexpected distances returned (distance to self is non-zero)', true);
+            return;
+        }
+        distances.shift();
+    }
+    if (times.length === response.locations.length) {
+        if (times[0] !== 0) {
+            console.log(`ERR: times[0] != ${times[0]}`);
+            appendDownloadStatus('ERR: unexpected times returned (time to self is non-zero)', true);
+            return;
+        }
+        times.shift();
+    }
+
+    // append to pool info
+    for (let i = 0; i < distances.length; i++) {
+        requestedPools[i].distance = distances[i];
+        requestedPools[i].time = times[i];
+    }
+
+    if (Math.max(...distances) > 50) {
+        appendDownloadStatus('ERR: one of the distances is >50km... maybe just a MapQuest bug, try re-downloading', true);
+    }
+    if (Math.min(...distances) === 0) {
+        appendDownloadStatus('ERR: one of the distances is 0km... maybe just a MapQuest bug, try re-downloading', true);
+    }
+
+    // refresh cards (hacky)
+    selectDate(elSelectDate.value);
 }
 
 function onSelectDate(event) {
@@ -246,6 +419,7 @@ function onSelectDate(event) {
 
     // change to it
     selectDate(date);
+    sortCards(elSelectSort.value);
 }
 
 function onSelectSort(event) {
@@ -256,13 +430,38 @@ function onSelectSort(event) {
     sortCards(sortOption);
 }
 
-window.addEventListener('load', (event) => {
-    console.log('page is fully loaded');
+function onPressDownloadAddresses(event) {
+    // reset download status
+    removeChildren(elDownloadResult);
 
+    let address = elInputAddress.value;
+    if (address.trim().length === 0) {
+        console.log('Really?');
+        return;
+    }
+
+    // can only do max 100 here, so let's split it up
+    let all_pools = Object.values(pool_info);
+    // subtract 1 from api size, 'cause always need to append our own address first
+    for (let i = 0; i < (all_pools.length / (maxMatrixAPISize - 1)); i++) {
+        console.log(`Update addresses for pools ${i * (maxMatrixAPISize - 1)}...${(i + 1) * (maxMatrixAPISize - 1) - 1}`);
+        let pools = all_pools.slice(i * (maxMatrixAPISize - 1), (i + 1) * (maxMatrixAPISize - 1));
+        updateDistances(address, pools);
+    }
+}
+
+function addDownloadStatus(status) {
+    // create element
+    // return it, so we can delete it later
+}
+
+window.addEventListener('load', (event) => {
     // get elements
     elSelectDate = document.querySelector('#date-select');
     elSelectSort = document.querySelector('#sort-select');
     elCardHolder = document.querySelector('.pool-card-holder');
+    elInputAddress = document.querySelector('#input-address');
+    elDownloadResult = document.querySelector('#download-result');
 
     // hook up date select
     elSelectDate.addEventListener('change', onSelectDate);
@@ -272,4 +471,10 @@ window.addEventListener('load', (event) => {
 
     // hook up sort select
     elSelectSort.addEventListener('change', onSelectSort);
+
+    // hook up distance checker
+    document.querySelector('#btn-distance-update').addEventListener('click', onPressDownloadAddresses);
+
+    // stick in previous API key, if exists
+    document.querySelector('#input-apikey').value = localStorage.getItem(apiKeyLocalStorageKey) || '';
 });

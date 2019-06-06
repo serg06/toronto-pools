@@ -252,7 +252,7 @@ def gen_v3(pool_info: List[Pool]):
 
     ##### GENERATE SELECT DROPDOWN #####
 
-    html_select = "<select label='date-select' id='date-select'>"
+    html_select = "<select id='date-select'>"
 
     for date in date_range(earliest_date, latest_date):
         html_select += f"<option value='{date.strftime('%Y-%m-%d')}'>{date.strftime('%Y-%m-%d')}</option>"
@@ -305,7 +305,9 @@ def gen_v3(pool_info: List[Pool]):
         html_template = template.read()
 
     with open(f'{PAGES_FOLDER}/{version_name}/pools-{version_name}.html', 'w') as result:
+        assert "{{ pool_info }}" in html_template
         html_template = html_template.replace("{{ pool_info }}", js_pool_info)
+        assert "{{ date_select }}" in html_template
         html_template = html_template.replace("{{ date_select }}", html_select)
 
         result.write(html_template)

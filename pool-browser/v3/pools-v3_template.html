@@ -17,21 +17,31 @@
 <body>
 <h1><a href="/toronto-pools/">Serg's Toronto leisure pool picker</a> v3!</h1>
 
+<!-- TODO: Allow hitting enter button in input field -->
+Download distances (and times?): <input id="input-address" placeholder="Your address">
+<input id="input-apikey" placeholder="API key">
+<button id="btn-distance-update">Download</button>
+
+<br>
+
+<div id="download-result-container">Download status: <ul id="download-result"></ul></div>
+
+<br>
 
 Choose a date:
 {{ date_select }}
 
 Sort by:
-<select label="sort-select" id="sort-select">
+<select id="sort-select">
     <option value="name">Name</option>
-    <option value="distance">Distance (placeholder)</option>
+    <option value="distance">Distance (appx)</option>
+    <option value="time">Driving time (appx)</option>
     <option value="length">Length</option>
     <option value="soonest">Soonest</option>
     <option value="start">Start</option>
     <option value="end">End</option>
 </select>
 
-<br>
 <div class='pool-card-holder'></div>
 </body>
 </html>
