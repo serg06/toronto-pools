@@ -1,5 +1,5 @@
 const oneDayMinutes = 60 * 24;
-const dataMatrixAPIURL = 'http://www.mapquestapi.com/directions/v2/routematrix'; // ?key=...
+const dataMatrixAPIURL = 'https://www.mapquestapi.com/directions/v2/routematrix'; // ?key=...
 const maxMatrixAPISize = 100;
 const requests = [];
 const responses = [];
